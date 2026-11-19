@@ -92,7 +92,7 @@ st.markdown("""
 - [INDEC: informe del IPC de octubre de 2026](https://www.indec.gob.ar/uploads/informesdeprensa/ipc_11_269335F5BA6B.pdf)
 - [INDEC: series históricas del IPC](https://www.indec.gob.ar/Nivel4/Tema/3/5/31)
 """)
-st.caption(
+st.caption()
     "Inflación = (IPC oct. 2026 / IPC oct. 2025 − 1) × 100. "
     "Variación real del salario = ((1 + aumento nominal) / (1 + inflación) − 1) × 100. "
     "El período tiene 13 observaciones mensuales y 12 variaciones entre octubre y octubre."
