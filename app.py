@@ -151,5 +151,3 @@ st.caption("La variación salarial real respecto del IPC se calcula como (1 + au
            "La evolución de las canastas y sus valores se toma directamente de los cuadros oficiales de INDEC. "
            "Los hogares de 3, 4 y 5 personas son ejemplos estadísticos publicados por el organismo; "
            "no describen automáticamente el consumo de tu hogar.")
-
-
