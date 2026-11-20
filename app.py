@@ -3,13 +3,24 @@ import pandas as pd
 import plotly.express as px
 
 st.set_page_config(page_title='Costos del Crematorio | Parque Las Praderas', page_icon='🔥', layout='wide')
-st.title('Análisis económico del crematorio')
+st.markdown('''<style>
+.block-container {max-width: 1150px; padding-top: 1.4rem; padding-bottom: 3rem;}
+[data-testid="stMetric"] {background: #f4f7fb; border-radius: 14px; padding: 18px 16px; min-height: 120px;}
+[data-testid="stMetricLabel"] {font-size: .94rem; white-space: normal;}
+[data-testid="stMetricValue"] {font-size: clamp(1.5rem, 3vw, 2.2rem); overflow-wrap: anywhere; white-space: normal; line-height: 1.25;}
+[data-testid="stSidebar"] {min-width: 295px;}
+.stTabs [data-baseweb="tab-list"] {gap: 8px; flex-wrap: wrap;}
+.stTabs [data-baseweb="tab"] {padding: 10px 12px; white-space: normal;}
+@media(max-width: 1000px) { [data-testid="stMetricValue"] {font-size: 1.6rem;} }
+</style>''', unsafe_allow_html=True)
+st.title('Costos del crematorio')
 st.caption('Parque Las Praderas · Costos reales, indicadores y simulaciones | Versión inicial')
 
 st.info('Los datos precargados son los informados por la administración. Son aproximados y deben conciliarse por período. El importe de gas corresponde a una factura de **32 días** y las 150 cremaciones son un promedio mensual, por lo que el costo unitario mostrado es una estimación hasta incorporar la cantidad exacta de servicios de esos 32 días.')
 
 with st.sidebar:
     st.header('Datos operativos')
+    st.caption('Modificá estos valores para actualizar todos los cálculos.')
     cremaciones = st.number_input('Cremaciones del período', min_value=1, value=150, step=1)
     hornos = st.number_input('Cantidad de hornos', min_value=1, value=2, step=1)
     dias = st.number_input('Días del período de gas', min_value=1, max_value=62, value=32)
@@ -37,25 +48,34 @@ costo_unitario = total/cremaciones
 
 t1,t2,t3,t4 = st.tabs(['Resumen de costos','Gas y hornos','Escenarios','Histórico de períodos'])
 with t1:
-    a,b,c,d = st.columns(4)
-    a.metric('Costo parcial / cremación', fmt(costo_unitario))
-    b.metric('Costo del período', fmt(total))
-    c.metric('Gas facturado / cremación', fmt(gas_total/cremaciones))
-    d.metric('Gas equivalente / cremación', f'{consumo/cremaciones:,.1f} m³')
+    st.subheader('Resultados principales')
+    a,b = st.columns(2)
+    a.metric('Costo parcial por cremación', fmt(costo_unitario))
+    b.metric('Costo total estimado del período', fmt(total))
+    c,d = st.columns(2)
+    c.metric('Gas facturado por cremación', fmt(gas_total/cremaciones))
+    d.metric('Gas equivalente por cremación', f'{consumo/cremaciones:,.1f} m³')
     st.warning('No es todavía el costo definitivo: falta confirmar asignación eléctrica, mantenimiento, amortización y tratamiento de IVA/percepciones. El gasto mensual de personal se compara provisionalmente con la cantidad de cremaciones del período de gas.')
     detalles = pd.DataFrame({'Concepto':['Gas (facturado o neto indicado)','Personal','Impuesto municipal','Bolsa y urna','Electricidad asignada','Mantenimiento','Amortización','Otros'], 'Costo ($)':[gas_aplicado,personal,cremaciones*impuesto,cremaciones*insumos,elec,mantenimiento,amortizacion,adicionales]})
-    c1,c2=st.columns([1.2,1])
-    with c1:
-        st.dataframe(detalles.assign(**{'Por cremación ($)':detalles['Costo ($)']/cremaciones}),hide_index=True,use_container_width=True,column_config={'Costo ($)':st.column_config.NumberColumn(format='$ %.0f'),'Por cremación ($)':st.column_config.NumberColumn(format='$ %.0f')})
-    with c2:
-        fig=px.pie(detalles[detalles['Costo ($)']>0],values='Costo ($)',names='Concepto',hole=.55,title='Composición del costo')
-        st.plotly_chart(fig,use_container_width=True)
+    st.subheader('Detalle de gastos')
+    tabla = detalles.assign(**{'Por cremación ($)': detalles['Costo ($)'] / cremaciones})
+    tabla['Costo mensual / período'] = tabla['Costo ($)'].map(fmt)
+    tabla['Costo por cremación'] = tabla['Por cremación ($)'].map(fmt)
+    st.dataframe(tabla[['Concepto', 'Costo mensual / período', 'Costo por cremación']],
+                 hide_index=True, use_container_width=True, height=325)
+    st.subheader('Composición del costo')
+    fig=px.bar(detalles[detalles['Costo ($)']>0].sort_values('Costo ($)'),
+               x='Costo ($)', y='Concepto', orientation='h', text='Costo ($)')
+    fig.update_traces(texttemplate='$%{text:,.0f}', textposition='outside', cliponaxis=False)
+    fig.update_layout(height=390, margin=dict(l=10,r=110,t=15,b=20),
+                      xaxis_title='Pesos por período', yaxis_title='', showlegend=False)
+    st.plotly_chart(fig,use_container_width=True)
 with t2:
     st.subheader('Consumo y operación')
-    c1,c2,c3=st.columns(3)
-    c1.metric('m³/día facturado',f'{consumo/dias:,.1f}')
-    c2.metric('Factura promedio / m³',fmt(gas_total/consumo) if consumo else '—')
-    c3.metric('Hornos',str(hornos))
+    c1,c2=st.columns(2)
+    c1.metric('m³/día facturados',f'{consumo/dias:,.1f}')
+    c2.metric('Factura promedio por m³',fmt(gas_total/consumo) if consumo else '—')
+    st.metric('Hornos disponibles',str(hornos))
     st.write('Indicadores orientativos: el consumo por servicio incluye precalentamiento, operación, espera y reinicios. Para aislar cada etapa se necesitan lecturas horarias del medidor o un medidor por horno.')
     lunes_sabado=st.number_input('Horas diarias por horno (lunes a sábado)',min_value=0.0,value=8.0,step=.5)
     domingo=st.number_input('Horas diarias por horno (domingo)',min_value=0.0,value=4.0,step=.5)
@@ -103,4 +123,5 @@ with t4:
                 st.plotly_chart(px.line(hist,x='periodo',y='m3_por_cremacion',markers=True,title='Gas por cremación por período'),use_container_width=True)
         except Exception as exc:
             st.error(f'No se pudo leer el CSV: {exc}')
+
 
